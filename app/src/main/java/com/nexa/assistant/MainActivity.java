@@ -61,6 +61,51 @@ public class MainActivity extends Activity {
         layout.addView(btnEnable, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
+        Button btnLaunchLinkedIn = new Button(this);
+        btnLaunchLinkedIn.setText("🔗 Open LinkedIn App");
+        btnLaunchLinkedIn.setTextColor(Color.WHITE);
+        btnLaunchLinkedIn.setTextSize(15);
+        btnLaunchLinkedIn.setTypeface(null, android.graphics.Typeface.BOLD);
+        GradientDrawable btnLaunchBg = new GradientDrawable();
+        btnLaunchBg.setColor(Color.parseColor("#0284c7"));
+        btnLaunchBg.setCornerRadius(20);
+        btnLaunchLinkedIn.setBackground(btnLaunchBg);
+        btnLaunchLinkedIn.setPadding(0, 32, 0, 32);
+        btnLaunchLinkedIn.setOnClickListener(v -> {
+            Intent launchIntent = getPackageManager().getLaunchIntentForPackage("com.linkedin.android");
+            if (launchIntent != null) {
+                startActivity(launchIntent);
+            } else {
+                Toast.makeText(this, "Opening LinkedIn...", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        LinearLayout.LayoutParams launchParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        launchParams.setMargins(0, 24, 0, 0);
+        layout.addView(btnLaunchLinkedIn, launchParams);
+
+        Button btnPermissions = new Button(this);
+        btnPermissions.setText("⚙️ App Permissions (Allow Pop-ups)");
+        btnPermissions.setTextColor(Color.parseColor("#38bdf8"));
+        btnPermissions.setTextSize(13);
+        GradientDrawable permBg = new GradientDrawable();
+        permBg.setColor(Color.parseColor("#1e293b"));
+        permBg.setCornerRadius(20);
+        permBg.setStroke(2, Color.parseColor("#334155"));
+        btnPermissions.setBackground(permBg);
+        btnPermissions.setPadding(0, 28, 0, 28);
+        btnPermissions.setOnClickListener(v -> {
+            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+            intent.setData(android.net.Uri.parse("package:" + getPackageName()));
+            startActivity(intent);
+        });
+
+        LinearLayout.LayoutParams permParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        permParams.setMargins(0, 20, 0, 0);
+        layout.addView(btnPermissions, permParams);
+
         setContentView(layout);
     }
 }

@@ -49,8 +49,8 @@ jobs:
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: v1.0.1
-        name: Nexa Assistant v1.0.1 (Signed Release)
+        tag_name: v1.0.2
+        name: Nexa Assistant v1.0.2 (Overlay Fix & Draggable Bubble)
         body: |
           ### ⚡ Nexa LinkedIn Assistant APK
           Download and install `NexaAssistant.apk` directly on your Android mobile.

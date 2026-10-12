@@ -45,6 +45,8 @@ public class LinkedInFloatingBotService extends AccessibilityService {
     private static final String LOCAL_URL = "http://10.98.172.180:5000/api/reply";
     private static final String LINKEDIN_PKG = "com.linkedin.android";
 
+    private WindowManager.LayoutParams bubbleParams;
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -52,40 +54,86 @@ public class LinkedInFloatingBotService extends AccessibilityService {
         createFloatingBubble();
     }
 
+    @Override
+    protected void onServiceConnected() {
+        super.onServiceConnected();
+        mainHandler.post(() -> Toast.makeText(this, "⚡ Nexa Assistant Active! Open LinkedIn to use.", Toast.LENGTH_LONG).show());
+    }
+
     private void createFloatingBubble() {
+        int size = (int) (58 * getResources().getDisplayMetrics().density);
+
         Button bubble = new Button(this);
         bubble.setText("⚡");
-        bubble.setTextSize(20);
+        bubble.setTextSize(22);
         bubble.setTextColor(Color.WHITE);
 
         // Circular styling
         GradientDrawable shape = new GradientDrawable();
         shape.setShape(GradientDrawable.OVAL);
         shape.setColor(Color.parseColor("#0284c7")); // Sky blue branding
-        shape.setStroke(3, Color.parseColor("#38bdf8"));
+        shape.setStroke(4, Color.parseColor("#38bdf8"));
         bubble.setBackground(shape);
 
-        final WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-                140, 140,
+        bubbleParams = new WindowManager.LayoutParams(
+                size, size,
                 WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                 PixelFormat.TRANSLUCENT
         );
 
         // Pin to Bottom-Right corner
-        params.gravity = Gravity.BOTTOM | Gravity.END;
-        params.x = 40;
-        params.y = 180;
+        bubbleParams.gravity = Gravity.BOTTOM | Gravity.END;
+        bubbleParams.x = (int) (18 * getResources().getDisplayMetrics().density);
+        bubbleParams.y = (int) (120 * getResources().getDisplayMetrics().density);
 
-        bubble.setOnClickListener(v -> handleBubbleClick());
+        // Draggable bubble support
+        bubble.setOnTouchListener(new View.OnTouchListener() {
+            private int initialX, initialY;
+            private float initialTouchX, initialTouchY;
+            private boolean isClick;
+
+            @Override
+            public boolean onTouch(View v, android.view.MotionEvent event) {
+                switch (event.getAction()) {
+                    case android.view.MotionEvent.ACTION_DOWN:
+                        initialX = bubbleParams.x;
+                        initialY = bubbleParams.y;
+                        initialTouchX = event.getRawX();
+                        initialTouchY = event.getRawY();
+                        isClick = true;
+                        return true;
+                    case android.view.MotionEvent.ACTION_MOVE:
+                        float dx = event.getRawX() - initialTouchX;
+                        float dy = event.getRawY() - initialTouchY;
+                        if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+                            isClick = false;
+                        }
+                        bubbleParams.x = initialX - (int) dx;
+                        bubbleParams.y = initialY - (int) dy;
+                        if (isBubbleAttached) {
+                            try {
+                                windowManager.updateViewLayout(floatingBubble, bubbleParams);
+                            } catch (Exception ignored) {}
+                        }
+                        return true;
+                    case android.view.MotionEvent.ACTION_UP:
+                        if (isClick) {
+                            handleBubbleClick();
+                        }
+                        return true;
+                }
+                return false;
+            }
+        });
+
         floatingBubble = bubble;
     }
 
     private void showBubble() {
-        if (!isBubbleAttached && floatingBubble != null) {
+        if (!isBubbleAttached && floatingBubble != null && bubbleParams != null) {
             try {
-                WindowManager.LayoutParams params = (WindowManager.LayoutParams) floatingBubble.getLayoutParams();
-                windowManager.addView(floatingBubble, params);
+                windowManager.addView(floatingBubble, bubbleParams);
                 isBubbleAttached = true;
             } catch (Exception ignored) {}
         }
@@ -95,8 +143,8 @@ public class LinkedInFloatingBotService extends AccessibilityService {
         if (isBubbleAttached && floatingBubble != null) {
             try {
                 windowManager.removeView(floatingBubble);
-                isBubbleAttached = false;
             } catch (Exception ignored) {}
+            isBubbleAttached = false;
         }
         dismissOverlay();
     }
@@ -104,13 +152,13 @@ public class LinkedInFloatingBotService extends AccessibilityService {
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         if (event == null || event.getPackageName() == null) return;
-        String pkg = event.getPackageName().toString();
+        String pkg = event.getPackageName().toString().toLowerCase();
 
         // STRICT PRIVACY: Only show bubble when LinkedIn is actively in foreground!
-        if (LINKEDIN_PKG.equals(pkg)) {
-            showBubble();
+        if (pkg.contains("linkedin")) {
+            mainHandler.post(this::showBubble);
         } else {
-            hideBubble();
+            mainHandler.post(this::hideBubble);
         }
     }
 
