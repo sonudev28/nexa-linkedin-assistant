@@ -49,14 +49,15 @@ jobs:
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: v1.0.5
-        name: Nexa Assistant v1.0.5 (Persistent Floating Bot & Quick Toggle)
+        tag_name: v1.0.6
+        name: Nexa Assistant v1.0.6 (Visual Thinking State & Clean Human Replies)
         body: |
-          ### ⚡ Nexa LinkedIn Assistant APK
+          ### ⚡ Nexa LinkedIn Assistant APK (v1.0.6)
           Download and install `NexaAssistant.apk` directly on your Android mobile.
+          - Instant visual thinking indicator (`⏳` Amber glow) when tapped
+          - Zero robotic bullet dashes; 100% human conversational sentences
+          - Deep multi-turn conversation history extraction
           - 24/7 Cloud Brain integration (Vercel Serverless)
-          - Floating overlay button for LinkedIn
-          - 1-Click Context-aware replies & auto-copy
         files: release-apk/NexaAssistant.apk
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -199,28 +199,58 @@ public class LinkedInFloatingBotService extends AccessibilityService {
         // Do not hide bubble on transient system interrupts
     }
 
+    private boolean isAnalyzing = false;
+
+    private void setBubbleLoadingState(boolean loading) {
+        isAnalyzing = loading;
+        if (floatingBubble instanceof Button) {
+            Button btn = (Button) floatingBubble;
+            if (loading) {
+                btn.setText("⏳");
+                GradientDrawable shape = new GradientDrawable();
+                shape.setShape(GradientDrawable.OVAL);
+                shape.setColor(Color.parseColor("#d97706")); // Amber orange "thinking" mode
+                shape.setStroke(4, Color.parseColor("#fbbf24"));
+                btn.setBackground(shape);
+            } else {
+                btn.setText("⚡");
+                GradientDrawable shape = new GradientDrawable();
+                shape.setShape(GradientDrawable.OVAL);
+                shape.setColor(Color.parseColor("#0284c7")); // Sky blue normal
+                shape.setStroke(4, Color.parseColor("#38bdf8"));
+                btn.setBackground(shape);
+            }
+        }
+    }
+
     private void handleBubbleClick() {
+        if (isAnalyzing) {
+            Toast.makeText(this, "🧠 Thinking in progress, please wait...", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         AccessibilityNodeInfo root = getRootInActiveWindow();
         if (root == null) {
-            mainHandler.post(() -> Toast.makeText(this, "⚠️ Please open LinkedIn first!", Toast.LENGTH_SHORT).show());
+            Toast.makeText(this, "⚠️ Please open LinkedIn first!", Toast.LENGTH_SHORT).show();
             return;
         }
 
         CharSequence rootPkg = root.getPackageName();
         if (rootPkg != null && !rootPkg.toString().toLowerCase().contains("linkedin")) {
-            mainHandler.post(() -> Toast.makeText(this, "🔒 Nexa Bot only inspects LinkedIn for privacy. Please open LinkedIn!", Toast.LENGTH_LONG).show());
+            Toast.makeText(this, "🔒 Nexa Bot only inspects LinkedIn for privacy. Please open LinkedIn!", Toast.LENGTH_LONG).show();
             return;
         }
-
-        mainHandler.post(() -> Toast.makeText(this, "⚡ Analyzing LinkedIn screen...", Toast.LENGTH_SHORT).show());
 
         List<String> texts = new ArrayList<>();
         extractTexts(root, texts);
 
         if (texts.isEmpty()) {
-            mainHandler.post(() -> Toast.makeText(this, "⚠️ No readable text found. Open a conversation or profile.", Toast.LENGTH_SHORT).show());
+            Toast.makeText(this, "⚠️ No readable text found. Open a conversation or profile.", Toast.LENGTH_SHORT).show();
             return;
         }
+
+        setBubbleLoadingState(true);
+        Toast.makeText(this, "🧠 Reading conversation & generating response...", Toast.LENGTH_SHORT).show();
 
         String combinedText = String.join("\n", texts);
 
@@ -235,7 +265,7 @@ public class LinkedInFloatingBotService extends AccessibilityService {
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Content-Type", "application/json");
                 conn.setConnectTimeout(8000);
-                conn.setReadTimeout(12000);
+                conn.setReadTimeout(15000);
                 conn.setDoOutput(true);
 
                 try (OutputStream os = conn.getOutputStream()) {
@@ -250,12 +280,21 @@ public class LinkedInFloatingBotService extends AccessibilityService {
                     while ((line = br.readLine()) != null) sb.append(line);
                     JSONObject res = new JSONObject(sb.toString());
 
-                    mainHandler.post(() -> showReplyOverlay(res));
+                    mainHandler.post(() -> {
+                        setBubbleLoadingState(false);
+                        showReplyOverlay(res);
+                    });
                 } else {
-                    mainHandler.post(() -> Toast.makeText(this, "Server error: " + responseCode, Toast.LENGTH_SHORT).show());
+                    mainHandler.post(() -> {
+                        setBubbleLoadingState(false);
+                        Toast.makeText(this, "Server error: " + responseCode, Toast.LENGTH_SHORT).show();
+                    });
                 }
             } catch (Exception e) {
-                mainHandler.post(() -> Toast.makeText(this, "Connection failed: Check internet connection or try again!", Toast.LENGTH_LONG).show());
+                mainHandler.post(() -> {
+                    setBubbleLoadingState(false);
+                    Toast.makeText(this, "Connection failed: Check internet connection or try again!", Toast.LENGTH_LONG).show();
+                });
             }
         });
     }
@@ -264,7 +303,17 @@ public class LinkedInFloatingBotService extends AccessibilityService {
         if (node == null) return;
         CharSequence cs = node.getText();
         if (cs != null && cs.length() > 0) {
-            list.add(cs.toString().trim());
+            String trimmed = cs.toString().trim();
+            if (!trimmed.isEmpty()) {
+                list.add(trimmed);
+            }
+        }
+        CharSequence desc = node.getContentDescription();
+        if (desc != null && desc.length() > 0) {
+            String descTrimmed = desc.toString().trim();
+            if (!descTrimmed.isEmpty() && (cs == null || !descTrimmed.equalsIgnoreCase(cs.toString().trim()))) {
+                list.add(descTrimmed);
+            }
         }
         for (int i = 0; i < node.getChildCount(); i++) {
             extractTexts(node.getChild(i), list);
@@ -289,6 +338,13 @@ public class LinkedInFloatingBotService extends AccessibilityService {
         String category = data.optString("category", "General");
         String recommended = data.optString("recommended", "");
         String tip = data.optString("copyNotice", "");
+
+        // Extra guarantee: clean any bullet dashes from display
+        recommended = recommended
+                .replaceAll("(?m)^[\\s]*[-—•*]\\s+", "")
+                .replaceAll("\n[\\s]*[-—•*]\\s+", "\n")
+                .replaceAll(" - ", ", ")
+                .trim();
 
         TextView tvTitle = new TextView(this);
         tvTitle.setText("🎯 " + name + " (" + category.replace("_", " ") + ")");
