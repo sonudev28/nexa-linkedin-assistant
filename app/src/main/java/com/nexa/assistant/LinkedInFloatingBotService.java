@@ -10,7 +10,9 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -61,11 +63,11 @@ public class LinkedInFloatingBotService extends AccessibilityService {
     }
 
     private void createFloatingBubble() {
-        int size = (int) (58 * getResources().getDisplayMetrics().density);
+        int size = (int) (60 * getResources().getDisplayMetrics().density);
 
         Button bubble = new Button(this);
         bubble.setText("⚡");
-        bubble.setTextSize(22);
+        bubble.setTextSize(24);
         bubble.setTextColor(Color.WHITE);
 
         // Circular styling
@@ -78,7 +80,7 @@ public class LinkedInFloatingBotService extends AccessibilityService {
         bubbleParams = new WindowManager.LayoutParams(
                 size, size,
                 WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 PixelFormat.TRANSLUCENT
         );
 
@@ -87,26 +89,31 @@ public class LinkedInFloatingBotService extends AccessibilityService {
         bubbleParams.x = (int) (18 * getResources().getDisplayMetrics().density);
         bubbleParams.y = (int) (120 * getResources().getDisplayMetrics().density);
 
-        // Draggable bubble support & solid tap execution
+        final int touchSlop = ViewConfiguration.get(this).getScaledTouchSlop() * 2;
+        bubble.setClickable(true);
+        bubble.setFocusable(false);
+
+        // Draggable bubble support & guaranteed tap execution via performClick()
         bubble.setOnTouchListener(new View.OnTouchListener() {
             private int initialX, initialY;
             private float initialTouchX, initialTouchY;
-            private boolean isDrag;
+            private boolean isDrag = false;
 
             @Override
-            public boolean onTouch(View v, android.view.MotionEvent event) {
+            public boolean onTouch(View v, MotionEvent event) {
                 switch (event.getAction()) {
-                    case android.view.MotionEvent.ACTION_DOWN:
+                    case MotionEvent.ACTION_DOWN:
                         initialX = bubbleParams.x;
                         initialY = bubbleParams.y;
                         initialTouchX = event.getRawX();
                         initialTouchY = event.getRawY();
                         isDrag = false;
                         return true;
-                    case android.view.MotionEvent.ACTION_MOVE:
+
+                    case MotionEvent.ACTION_MOVE:
                         float dx = event.getRawX() - initialTouchX;
                         float dy = event.getRawY() - initialTouchY;
-                        if (Math.abs(dx) > 12 || Math.abs(dy) > 12) {
+                        if (Math.hypot(dx, dy) > touchSlop) {
                             isDrag = true;
                             bubbleParams.x = initialX - (int) dx;
                             bubbleParams.y = initialY - (int) dy;
@@ -117,14 +124,19 @@ public class LinkedInFloatingBotService extends AccessibilityService {
                             }
                         }
                         return true;
-                    case android.view.MotionEvent.ACTION_UP:
+
+                    case MotionEvent.ACTION_UP:
                         if (!isDrag) {
-                            mainHandler.post(LinkedInFloatingBotService.this::handleBubbleClick);
+                            v.performClick();
                         }
                         return true;
                 }
                 return false;
             }
+        });
+
+        bubble.setOnClickListener(v -> {
+            mainHandler.post(this::handleBubbleClick);
         });
 
         floatingBubble = bubble;
@@ -183,16 +195,21 @@ public class LinkedInFloatingBotService extends AccessibilityService {
     }
 
     private void handleBubbleClick() {
-        Toast.makeText(this, "⚡ Analyzing LinkedIn screen...", Toast.LENGTH_SHORT).show();
+        mainHandler.post(() -> Toast.makeText(this, "⚡ Analyzing LinkedIn screen...", Toast.LENGTH_SHORT).show());
 
         AccessibilityNodeInfo root = getRootInActiveWindow();
         if (root == null) {
-            Toast.makeText(this, "Could not read screen. Make sure LinkedIn is open.", Toast.LENGTH_SHORT).show();
+            mainHandler.post(() -> Toast.makeText(this, "⚠️ Please open a LinkedIn chat or profile first!", Toast.LENGTH_SHORT).show());
             return;
         }
 
         List<String> texts = new ArrayList<>();
         extractTexts(root, texts);
+
+        if (texts.isEmpty()) {
+            mainHandler.post(() -> Toast.makeText(this, "⚠️ No readable text found. Open a conversation or profile.", Toast.LENGTH_SHORT).show());
+            return;
+        }
 
         String combinedText = String.join("\n", texts);
 

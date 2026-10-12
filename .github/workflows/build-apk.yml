@@ -49,8 +49,8 @@ jobs:
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: v1.0.3
-        name: Nexa Assistant v1.0.3 (Anti-Flicker & Solid Tap Fix)
+        tag_name: v1.0.4
+        name: Nexa Assistant v1.0.4 (Responsive Tap & Guaranteed Click)
         body: |
           ### ⚡ Nexa LinkedIn Assistant APK
           Download and install `NexaAssistant.apk` directly on your Android mobile.
