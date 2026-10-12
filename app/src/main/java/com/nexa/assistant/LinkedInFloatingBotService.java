@@ -163,7 +163,7 @@ public class LinkedInFloatingBotService extends AccessibilityService {
                     mainHandler.post(() -> Toast.makeText(this, "Server error: " + conn.getResponseCode(), Toast.LENGTH_SHORT).show());
                 }
             } catch (Exception e) {
-                mainHandler.post(() -> Toast.makeText(this, "Connection failed: Ensure laptop server is running!", Toast.LENGTH_LONG).show());
+                mainHandler.post(() -> Toast.makeText(this, "Connection failed: Check internet connection or try again!", Toast.LENGTH_LONG).show());
             }
         });
     }
