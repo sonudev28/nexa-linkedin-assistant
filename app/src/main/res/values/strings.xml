@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Nexa LinkedIn Assistant</string>
+    <string name="accessibility_desc">Floating AI assistant that reads LinkedIn chat and generates custom replies using your laptop Nexa Studio brain.</string>
+</resources>
