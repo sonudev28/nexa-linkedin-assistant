@@ -336,11 +336,10 @@ public class LinkedInFloatingBotService extends AccessibilityService {
 
         String name = data.optString("personName", "Lead");
         String category = data.optString("category", "General");
-        String recommended = data.optString("recommended", "");
         String tip = data.optString("copyNotice", "");
 
         // Extra guarantee: clean any bullet dashes from display
-        recommended = recommended
+        final String recommended = data.optString("recommended", "")
                 .replaceAll("(?m)^[\\s]*[-—•*]\\s+", "")
                 .replaceAll("\n[\\s]*[-—•*]\\s+", "\n")
                 .replaceAll(" - ", ", ")
