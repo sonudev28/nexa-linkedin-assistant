@@ -49,9 +49,12 @@ public class LinkedInFloatingBotService extends AccessibilityService {
 
     private WindowManager.LayoutParams bubbleParams;
 
+    public static LinkedInFloatingBotService instance;
+
     @Override
     public void onCreate() {
         super.onCreate();
+        instance = this;
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         createFloatingBubble();
     }
@@ -59,7 +62,23 @@ public class LinkedInFloatingBotService extends AccessibilityService {
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
-        mainHandler.post(() -> Toast.makeText(this, "⚡ Nexa Assistant Active! Open LinkedIn to use.", Toast.LENGTH_LONG).show());
+        instance = this;
+        mainHandler.post(() -> {
+            showBubble();
+            Toast.makeText(this, "⚡ Nexa Assistant Active! Floating bot is ready.", Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    public void toggleBubble() {
+        mainHandler.post(() -> {
+            if (isBubbleAttached) {
+                hideBubble();
+                Toast.makeText(this, "Floating Bot Hidden", Toast.LENGTH_SHORT).show();
+            } else {
+                showBubble();
+                Toast.makeText(this, "Floating Bot Shown", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void createFloatingBubble() {
@@ -166,42 +185,34 @@ public class LinkedInFloatingBotService extends AccessibilityService {
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         if (event == null) return;
-
-        // CRITICAL FIX: Only respond to TYPE_WINDOW_STATE_CHANGED (app transitions)
-        if (event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            return;
-        }
-
-        CharSequence cs = event.getPackageName();
-        if (cs == null) return;
-        String pkg = cs.toString().toLowerCase();
-
-        // Ignore system overlays, keyboards, or assistant dialogs so they never cause blinking
-        if (pkg.contains("systemui") || pkg.contains("inputmethod") || pkg.equals("android") || pkg.contains("nexa")) {
-            return;
-        }
-
-        // STRICT PRIVACY: Show bubble when LinkedIn is actively in foreground, hide on other apps
-        if (pkg.contains("linkedin")) {
-            mainHandler.post(this::showBubble);
-        } else {
-            mainHandler.post(this::hideBubble);
+        // Keep bubble active and reliable when LinkedIn is visited
+        if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            CharSequence cs = event.getPackageName();
+            if (cs != null && cs.toString().toLowerCase().contains("linkedin")) {
+                mainHandler.post(this::showBubble);
+            }
         }
     }
 
     @Override
     public void onInterrupt() {
-        hideBubble();
+        // Do not hide bubble on transient system interrupts
     }
 
     private void handleBubbleClick() {
-        mainHandler.post(() -> Toast.makeText(this, "⚡ Analyzing LinkedIn screen...", Toast.LENGTH_SHORT).show());
-
         AccessibilityNodeInfo root = getRootInActiveWindow();
         if (root == null) {
-            mainHandler.post(() -> Toast.makeText(this, "⚠️ Please open a LinkedIn chat or profile first!", Toast.LENGTH_SHORT).show());
+            mainHandler.post(() -> Toast.makeText(this, "⚠️ Please open LinkedIn first!", Toast.LENGTH_SHORT).show());
             return;
         }
+
+        CharSequence rootPkg = root.getPackageName();
+        if (rootPkg != null && !rootPkg.toString().toLowerCase().contains("linkedin")) {
+            mainHandler.post(() -> Toast.makeText(this, "🔒 Nexa Bot only inspects LinkedIn for privacy. Please open LinkedIn!", Toast.LENGTH_LONG).show());
+            return;
+        }
+
+        mainHandler.post(() -> Toast.makeText(this, "⚡ Analyzing LinkedIn screen...", Toast.LENGTH_SHORT).show());
 
         List<String> texts = new ArrayList<>();
         extractTexts(root, texts);
@@ -304,7 +315,26 @@ public class LinkedInFloatingBotService extends AccessibilityService {
         scroll.addView(tvMsg);
         layout.addView(scroll, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 500));
 
-        // Copy & Close Button
+        // Button Row: Close & Copy
+        LinearLayout btnRow = new LinearLayout(this);
+        btnRow.setOrientation(LinearLayout.HORIZONTAL);
+
+        Button btnClose = new Button(this);
+        btnClose.setText("✕ Close");
+        btnClose.setTextColor(Color.parseColor("#94a3b8"));
+        btnClose.setTextSize(14);
+        GradientDrawable closeBg = new GradientDrawable();
+        closeBg.setColor(Color.parseColor("#1e293b"));
+        closeBg.setCornerRadius(16);
+        btnClose.setBackground(closeBg);
+        btnClose.setPadding(30, 24, 30, 24);
+        btnClose.setOnClickListener(v -> dismissOverlay());
+
+        LinearLayout.LayoutParams closeParams = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
+        closeParams.setMargins(0, 24, 12, 0);
+        btnRow.addView(btnClose, closeParams);
+
         Button btnCopy = new Button(this);
         btnCopy.setText("📋 Copy & Close");
         btnCopy.setTextColor(Color.parseColor("#0f172a"));
@@ -324,10 +354,12 @@ public class LinkedInFloatingBotService extends AccessibilityService {
             dismissOverlay();
         });
 
-        LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        btnParams.setMargins(0, 24, 0, 0);
-        layout.addView(btnCopy, btnParams);
+        LinearLayout.LayoutParams copyParams = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 2.0f);
+        copyParams.setMargins(12, 24, 0, 0);
+        btnRow.addView(btnCopy, copyParams);
+
+        layout.addView(btnRow);
 
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.MATCH_PARENT,

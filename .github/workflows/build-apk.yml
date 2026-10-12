@@ -49,8 +49,8 @@ jobs:
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: v1.0.4
-        name: Nexa Assistant v1.0.4 (Responsive Tap & Guaranteed Click)
+        tag_name: v1.0.5
+        name: Nexa Assistant v1.0.5 (Persistent Floating Bot & Quick Toggle)
         body: |
           ### ⚡ Nexa LinkedIn Assistant APK
           Download and install `NexaAssistant.apk` directly on your Android mobile.

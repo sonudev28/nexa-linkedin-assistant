@@ -116,6 +116,29 @@ public class MainActivity extends Activity {
         permParams.setMargins(0, 20, 0, 0);
         layout.addView(btnPermissions, permParams);
 
+        Button btnToggle = new Button(this);
+        btnToggle.setText("👁️ Show / Hide Floating Icon");
+        btnToggle.setTextColor(Color.WHITE);
+        btnToggle.setTextSize(14);
+        btnToggle.setTypeface(null, android.graphics.Typeface.BOLD);
+        GradientDrawable toggleBg = new GradientDrawable();
+        toggleBg.setColor(Color.parseColor("#475569"));
+        toggleBg.setCornerRadius(20);
+        btnToggle.setBackground(toggleBg);
+        btnToggle.setPadding(0, 30, 0, 30);
+        btnToggle.setOnClickListener(v -> {
+            if (LinkedInFloatingBotService.instance != null) {
+                LinkedInFloatingBotService.instance.toggleBubble();
+            } else {
+                Toast.makeText(this, "Please enable Accessibility Service first!", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        LinearLayout.LayoutParams toggleParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        toggleParams.setMargins(0, 20, 0, 0);
+        layout.addView(btnToggle, toggleParams);
+
         setContentView(layout);
     }
 }
