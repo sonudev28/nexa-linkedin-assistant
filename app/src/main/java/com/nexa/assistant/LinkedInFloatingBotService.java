@@ -87,11 +87,11 @@ public class LinkedInFloatingBotService extends AccessibilityService {
         bubbleParams.x = (int) (18 * getResources().getDisplayMetrics().density);
         bubbleParams.y = (int) (120 * getResources().getDisplayMetrics().density);
 
-        // Draggable bubble support
+        // Draggable bubble support & solid tap execution
         bubble.setOnTouchListener(new View.OnTouchListener() {
             private int initialX, initialY;
             private float initialTouchX, initialTouchY;
-            private boolean isClick;
+            private boolean isDrag;
 
             @Override
             public boolean onTouch(View v, android.view.MotionEvent event) {
@@ -101,25 +101,25 @@ public class LinkedInFloatingBotService extends AccessibilityService {
                         initialY = bubbleParams.y;
                         initialTouchX = event.getRawX();
                         initialTouchY = event.getRawY();
-                        isClick = true;
+                        isDrag = false;
                         return true;
                     case android.view.MotionEvent.ACTION_MOVE:
                         float dx = event.getRawX() - initialTouchX;
                         float dy = event.getRawY() - initialTouchY;
-                        if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
-                            isClick = false;
-                        }
-                        bubbleParams.x = initialX - (int) dx;
-                        bubbleParams.y = initialY - (int) dy;
-                        if (isBubbleAttached) {
-                            try {
-                                windowManager.updateViewLayout(floatingBubble, bubbleParams);
-                            } catch (Exception ignored) {}
+                        if (Math.abs(dx) > 12 || Math.abs(dy) > 12) {
+                            isDrag = true;
+                            bubbleParams.x = initialX - (int) dx;
+                            bubbleParams.y = initialY - (int) dy;
+                            if (isBubbleAttached) {
+                                try {
+                                    windowManager.updateViewLayout(floatingBubble, bubbleParams);
+                                } catch (Exception ignored) {}
+                            }
                         }
                         return true;
                     case android.view.MotionEvent.ACTION_UP:
-                        if (isClick) {
-                            handleBubbleClick();
+                        if (!isDrag) {
+                            mainHandler.post(LinkedInFloatingBotService.this::handleBubbleClick);
                         }
                         return true;
                 }
@@ -135,7 +135,9 @@ public class LinkedInFloatingBotService extends AccessibilityService {
             try {
                 windowManager.addView(floatingBubble, bubbleParams);
                 isBubbleAttached = true;
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+                isBubbleAttached = false;
+            }
         }
     }
 
@@ -151,10 +153,23 @@ public class LinkedInFloatingBotService extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
-        if (event == null || event.getPackageName() == null) return;
-        String pkg = event.getPackageName().toString().toLowerCase();
+        if (event == null) return;
 
-        // STRICT PRIVACY: Only show bubble when LinkedIn is actively in foreground!
+        // CRITICAL FIX: Only respond to TYPE_WINDOW_STATE_CHANGED (app transitions)
+        if (event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            return;
+        }
+
+        CharSequence cs = event.getPackageName();
+        if (cs == null) return;
+        String pkg = cs.toString().toLowerCase();
+
+        // Ignore system overlays, keyboards, or assistant dialogs so they never cause blinking
+        if (pkg.contains("systemui") || pkg.contains("inputmethod") || pkg.equals("android") || pkg.contains("nexa")) {
+            return;
+        }
+
+        // STRICT PRIVACY: Show bubble when LinkedIn is actively in foreground, hide on other apps
         if (pkg.contains("linkedin")) {
             mainHandler.post(this::showBubble);
         } else {

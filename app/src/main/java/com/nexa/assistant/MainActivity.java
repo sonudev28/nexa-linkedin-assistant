@@ -73,10 +73,20 @@ public class MainActivity extends Activity {
         btnLaunchLinkedIn.setPadding(0, 32, 0, 32);
         btnLaunchLinkedIn.setOnClickListener(v -> {
             Intent launchIntent = getPackageManager().getLaunchIntentForPackage("com.linkedin.android");
+            if (launchIntent == null) {
+                launchIntent = getPackageManager().getLaunchIntentForPackage("com.linkedin.android.lite");
+            }
             if (launchIntent != null) {
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(launchIntent);
             } else {
-                Toast.makeText(this, "Opening LinkedIn...", Toast.LENGTH_SHORT).show();
+                try {
+                    Intent viewIntent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://www.linkedin.com"));
+                    viewIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(viewIntent);
+                } catch (Exception e) {
+                    Toast.makeText(this, "Could not open LinkedIn", Toast.LENGTH_SHORT).show();
+                }
             }
         });
 
