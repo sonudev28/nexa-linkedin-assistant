@@ -151,7 +151,8 @@ public class LinkedInFloatingBotService extends AccessibilityService {
                     os.write(payload.toString().getBytes("utf-8"));
                 }
 
-                if (conn.getResponseCode() == 200) {
+                int responseCode = conn.getResponseCode();
+                if (responseCode == 200) {
                     BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "utf-8"));
                     StringBuilder sb = new StringBuilder();
                     String line;
@@ -160,7 +161,7 @@ public class LinkedInFloatingBotService extends AccessibilityService {
 
                     mainHandler.post(() -> showReplyOverlay(res));
                 } else {
-                    mainHandler.post(() -> Toast.makeText(this, "Server error: " + conn.getResponseCode(), Toast.LENGTH_SHORT).show());
+                    mainHandler.post(() -> Toast.makeText(this, "Server error: " + responseCode, Toast.LENGTH_SHORT).show());
                 }
             } catch (Exception e) {
                 mainHandler.post(() -> Toast.makeText(this, "Connection failed: Check internet connection or try again!", Toast.LENGTH_LONG).show());
