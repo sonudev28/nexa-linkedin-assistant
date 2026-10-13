@@ -50,7 +50,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         tag_name: v1.0.8
-        name: Nexa Assistant v1.0.8 (Anti-Swipe-Kill Shield: Survives Recent Apps Clear)
+        name: "Nexa Assistant v1.0.8 (Anti-Swipe-Kill Shield - Survives Recent Apps Clear)"
         body: |
           ### ⚡ Nexa LinkedIn Assistant APK (v1.0.8)
           Download and install `NexaAssistant.apk` directly on your Android mobile.
