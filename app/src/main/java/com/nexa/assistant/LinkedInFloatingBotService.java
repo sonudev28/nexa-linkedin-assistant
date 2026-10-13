@@ -89,11 +89,23 @@ public class LinkedInFloatingBotService extends AccessibilityService {
                         .setSmallIcon(android.R.drawable.ic_dialog_info)
                         .setOngoing(true)
                         .build();
-                startForeground(1001, notification);
+                if (Build.VERSION.SDK_INT >= 34) {
+                    startForeground(1001, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+                } else {
+                    startForeground(1001, notification);
+                }
             }
         } catch (Throwable ignored) {
             // Safe fallback if foreground notification is restricted
         }
+    }
+
+    @Override
+    public int onStartCommand(android.content.Intent intent, int flags, int startId) {
+        instance = this;
+        startKeepAliveForeground();
+        mainHandler.post(this::showBubble);
+        return START_STICKY;
     }
 
     @Override
@@ -501,6 +513,14 @@ public class LinkedInFloatingBotService extends AccessibilityService {
                 overlayDialog = null;
             } catch (Exception ignored) {}
         }
+    }
+
+    @Override
+    public void onTaskRemoved(android.content.Intent rootIntent) {
+        // Keep floating icon alive even when user clears Recent Apps!
+        instance = this;
+        startKeepAliveForeground();
+        mainHandler.post(this::showBubble);
     }
 
     @Override

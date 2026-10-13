@@ -49,15 +49,14 @@ jobs:
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: v1.0.7
-        name: Nexa Assistant v1.0.7 (24/7 MIUI Keep-Alive, Anti-Crash Guard & 1.6s Cloud Engine)
+        tag_name: v1.0.8
+        name: Nexa Assistant v1.0.8 (Anti-Swipe-Kill Shield: Survives Recent Apps Clear)
         body: |
-          ### ⚡ Nexa LinkedIn Assistant APK (v1.0.7)
+          ### ⚡ Nexa LinkedIn Assistant APK (v1.0.8)
           Download and install `NexaAssistant.apk` directly on your Android mobile.
-          - **Zero Laptop Dependency**: 100% Cloud-powered on Vercel (`gemini-3.5-flash` primary engine with 1.6s response time)
-          - **MIUI / HyperOS Keep-Alive**: Foreground service notification + `stopWithTask="false"` + 1-click Battery Saver exemption so the phone never kills or marks the service as malfunctioning overnight
-          - **Crash-Proof Accessibility Guard**: Global exception shield prevents Android from disabling the service in Downloaded Apps
-          - **Auto-Retry Network Layer**: Automatically retries transient mobile network blips
+          - **Anti-Swipe-Kill Shield (`excludeFromRecents="true"` + `taskAffinity=""`)**: Clearing background apps (Recent Apps tray) will NO LONGER kill the floating bot icon!
+          - **Android 14 Protected Foreground Service (`specialUse` + `START_STICKY` + `onTaskRemoved`)**: Keeps the bot running 24/7 even when all apps are closed.
+          - **Zero Laptop Dependency**: 100% Cloud-powered on Vercel with 6-model high-quota pool + Zero-500 fallback.
         files: release-apk/NexaAssistant.apk
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
